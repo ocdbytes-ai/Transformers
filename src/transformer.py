@@ -17,6 +17,14 @@ class PositionwiseFFNInput:
 
 
 class PositionwiseFFN(nn.Module):
+    """
+    PositionwiseFFN is a small MLP to apply non linear
+    transformation to the tokens. FFN layers act like
+    key-value memories: rows of W1 match input patterns,
+    and rows of W2 write out associated output distributions.
+    Source: "Transformer Feed-Forward Layers Are Key-Value Memories".
+    """
+
     def __init__(self, inputs: PositionwiseFFNInput) -> None:
         super().__init__()
         self.dense1 = nn.LazyLinear(inputs.num_hiddens)
@@ -34,7 +42,21 @@ class AddNormInput:
 
 
 class AddNorm(nn.Module):
-    """The residual connection followed by layer normalization."""
+    """
+    A Normalization layer added after each pass through either attention or FFN
+    We define the layer as a input sanitation layer which keeps the inputs (features) across
+    the blocks consistent in scale across the layers.
+
+    We basically take the sublayer output to its input and then normalize each
+    token vector of that sum and thus producing a single tensor of information.
+
+    input -------|
+                 | ---> AddNorm (input, output)
+    output ------|
+
+    input : input to the sublayer like a FFN or Attention
+    output : output from that sublayer
+    """
 
     def __init__(self, inputs: AddNormInput):
         super().__init__()
@@ -55,6 +77,14 @@ class TransformerEncoderBlockInput:
 
 
 class TransformerEncoderBlock(nn.Module):
+    """
+    Transformer Encoder BLock
+
+    Each block has its own multi head attention and a FFN
+    After each layer the features are normalized using the
+    Add Norm layer.
+    """
+
     def __init__(self, inputs: TransformerEncoderBlockInput):
         super().__init__()
         self.attention = MultiheadAttention(
@@ -162,6 +192,13 @@ class TransformerDecoderBlockInput:
 
 
 class TransformerDecoderBlock(nn.Module):
+    """
+    Decoder block for transformer
+
+    the block has attention --> add norm --> attention --> add norm
+    --> ffn --> add norm
+    """
+
     def __init__(self, inputs: TransformerDecoderBlockInput):
         super().__init__()
         self.index = inputs.block_index
